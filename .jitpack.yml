@@ -1,5 +1,5 @@
 jdk:
-  - openjdk8
+  - openjdk17
 
 install:
   - ./gradlew :sa-gradle-plugin:shadowJar :sa-gradle-plugin:publishToMavenLocal
