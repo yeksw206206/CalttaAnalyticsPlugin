@@ -1,7 +1,20 @@
 plugins {
     id 'java-library'
     id 'org.jetbrains.kotlin.jvm'
+    id 'com.github.johnrengelman.shadow'
+
 }
+
+// 配置 shadowJar 打包所有 implementation 内容
+shadowJar {
+    configurations = []
+    archiveClassifier.set("") //输出为 xxx.jar，而不是 xxx-all.jar
+    from(project(':sa-agp-api').sourceSets.main.output)
+    from(project(':sa-agp-v7_3').sourceSets.main.output)
+    from(project(':sa-agp-legacy').sourceSets.main.output)
+    from(project(':sa-agp-compat').sourceSets.main.output)
+}
+
 
 def publishMaven = true
 if (publishMaven) {

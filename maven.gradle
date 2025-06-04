@@ -28,65 +28,80 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
+afterEvaluate {
+    def artifactFile
 
-publishing {
-    publications {
-        mavenAndroid(MavenPublication) {
-            groupId = groupId_maven
-            artifactId = artifactId_maven
-            version = version
-            artifact sourceJar
-            artifact javadocJar
-            artifact("build/libs/${project.name}-${version}.jar")
-            pom {
-                packaging 'jar'
-                name = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
-                description = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
-                url = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
-                licenses {
-                    license {
-                        name = 'The Apache Software License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    // 判断是否存在 shadowJar 任务
+    if (project.tasks.findByName("shadowJar") != null) {
+        artifactFile = tasks.named("shadowJar").get().archiveFile.get().asFile
+        println "使用 shadowJar 构建产物:"+artifactFile
+    } else {
+        artifactFile = tasks.named("jar").get().archiveFile.get().asFile
+        println "未找到 shadowJar，使用默认 jar:"+artifactFile
+    }
+
+    publishing {
+        publications {
+            mavenAndroid(MavenPublication) {
+                groupId = groupId_maven
+                artifactId = artifactId_maven
+                version = version
+                artifact sourceJar
+                artifact javadocJar
+                //artifact("build/libs/${project.name}-${version}.jar")
+
+                artifact(artifactFile)  // 使用动态确定的产物文件
+
+                pom {
+                    packaging 'jar'
+                    name = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
+                    description = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
+                    url = 'The official Android SDK Gradle Plugin for Sensors Analytics.'
+                    licenses {
+                        license {
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
                     }
-                }
-                developers {
-                    developer {
-                        id = 'zhangwei'
-                        name = 'zhangwei'
-                        email = 'zhangwei@sensorsdata.com'
+                    developers {
+                        developer {
+                            id = 'zhangwei'
+                            name = 'zhangwei'
+                            email = 'zhangwei@sensorsdata.com'
+                        }
+                        developer {
+                            id = 'dengshiwei'
+                            name = 'dengshiwei'
+                            email = 'dengshiwei@sensorsdata.com'
+                        }
                     }
-                    developer {
-                        id = 'dengshiwei'
-                        name = 'dengshiwei'
-                        email = 'dengshiwei@sensorsdata.com'
+                    scm {
+                        connection = 'https://github.com/sensorsdata/sa-sdk-android-plugin2'
+                        developerConnection = 'https://github.com/sensorsdata/sa-sdk-android-plugin2.git'
+                        url = 'https://github.com/sensorsdata/sa-sdk-android-plugin2'
                     }
-                }
-                scm {
-                    connection = 'https://github.com/sensorsdata/sa-sdk-android-plugin2'
-                    developerConnection = 'https://github.com/sensorsdata/sa-sdk-android-plugin2.git'
-                    url = 'https://github.com/sensorsdata/sa-sdk-android-plugin2'
-                }
-                pom.withXml {
-                    def dependenciesNode = asNode().appendNode('dependencies')
-                    project.configurations.all { configuration ->
-                        def name = configuration.name
-                        if (name == 'implementation' || name == 'releaseImplementation') {
-                            configuration.allDependencies.each {
-                                if (it.group != null && it.name != "unspecified" && it.version != null) {
-                                    String groupId = it.group
-                                    def artifactId = it.name
-                                    def version = it.version
-                                    if (groupId.startsWith("sa-sdk-android")) {
-                                        groupId = groupId_maven
+                    pom.withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+                        project.configurations.all { configuration ->
+                            def name = configuration.name
+                            if (name == 'implementation' || name == 'releaseImplementation') {
+                                configuration.allDependencies.each {
+                                    if (it.group != null && it.name != "unspecified" && it.version != null) {
+                                        String groupId = it.group
+                                        def artifactId = it.name
+                                        def version = it.version
+                                        if (groupId.startsWith("sa-sdk-android")) {
+                                            groupId = groupId_maven
+                                        }
+                                        if (artifactId == "sa-gradle-plugin") {
+                                            artifactId = "android-gradle-plugin2"
+                                        }
+                                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                                        dependencyNode.appendNode('groupId', groupId)
+                                        dependencyNode.appendNode('artifactId', artifactId)
+                                        dependencyNode.appendNode('version', version)
+                                        dependencyNode.appendNode('scope', 'compile')
                                     }
-                                    if (artifactId == "sa-gradle-plugin") {
-                                        artifactId = "android-gradle-plugin2"
-                                    }
-                                    def dependencyNode = dependenciesNode.appendNode('dependency')
-                                    dependencyNode.appendNode('groupId', groupId)
-                                    dependencyNode.appendNode('artifactId', artifactId)
-                                    dependencyNode.appendNode('version', version)
-                                    dependencyNode.appendNode('scope', 'compile')
                                 }
                             }
                         }
@@ -94,23 +109,22 @@ publishing {
                 }
             }
         }
-    }
 
-    repositories {
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        def mavenUser = properties.getProperty("maven.user")
-        def mavenPassword = properties.getProperty("maven.password")
-        maven {
-            url = '../repo'
-//            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
-//            credentials {
-//                username mavenUser
-//                password mavenPassword
-//            }
+        repositories {
+            Properties properties = new Properties()
+            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+            def mavenUser = properties.getProperty("maven.user")
+            def mavenPassword = properties.getProperty("maven.password")
+            maven {
+                url = '../repo'
+    //            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+    //            credentials {
+    //                username mavenUser
+    //                password mavenPassword
+    //            }
+            }
         }
     }
-
 }
 /*
 // 对 mavenAndroid 发布内容进行签名
