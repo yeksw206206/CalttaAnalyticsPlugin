@@ -28,6 +28,12 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
+tasks.withType(PublishToMavenRepository) {
+    if (project.tasks.findByName("shadowJar") != null) {
+        dependsOn tasks.named('shadowJar')
+    }
+}
+
 afterEvaluate {
     def artifactFile
 
@@ -90,17 +96,22 @@ afterEvaluate {
                                         String groupId = it.group
                                         def artifactId = it.name
                                         def version = it.version
-                                        if (groupId.startsWith("sa-sdk-android")) {
-                                            groupId = groupId_maven
+
+                                        if (!(groupId == "sa-sdk-android-plugin2" && artifactId == "sa-agp-api")) {
+                                            println("依赖：" + groupId + ":" + artifactId + ":" + version)
+                                            if (groupId.startsWith("sa-sdk-android")) {
+                                                groupId = groupId_maven
+                                            }
+                                            if (artifactId == "sa-gradle-plugin") {
+                                                artifactId = "android-gradle-plugin2"
+                                            }
+
+                                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                                            dependencyNode.appendNode('groupId', groupId)
+                                            dependencyNode.appendNode('artifactId', artifactId)
+                                            dependencyNode.appendNode('version', version)
+                                            dependencyNode.appendNode('scope', 'compile')
                                         }
-                                        if (artifactId == "sa-gradle-plugin") {
-                                            artifactId = "android-gradle-plugin2"
-                                        }
-                                        def dependencyNode = dependenciesNode.appendNode('dependency')
-                                        dependencyNode.appendNode('groupId', groupId)
-                                        dependencyNode.appendNode('artifactId', artifactId)
-                                        dependencyNode.appendNode('version', version)
-                                        dependencyNode.appendNode('scope', 'compile')
                                     }
                                 }
                             }
