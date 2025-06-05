@@ -34,6 +34,12 @@ tasks.withType(PublishToMavenRepository) {
     }
 }
 
+tasks.withType(PublishToMavenLocal) {
+    if (project.tasks.findByName("shadowJar") != null) {
+        dependsOn tasks.named('shadowJar')
+    }
+}
+
 afterEvaluate {
     def artifactFile
 
@@ -122,10 +128,10 @@ afterEvaluate {
         }
 
         repositories {
-            Properties properties = new Properties()
-            properties.load(project.rootProject.file('local.properties').newDataInputStream())
-            def mavenUser = properties.getProperty("maven.user")
-            def mavenPassword = properties.getProperty("maven.password")
+//            Properties properties = new Properties()
+//            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+//            def mavenUser = properties.getProperty("maven.user")
+//            def mavenPassword = properties.getProperty("maven.password")
             maven {
                 url = '../repo'
     //            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
